@@ -2,8 +2,8 @@ const binaryData = 'AwAAAIF/gX8GAAAA1AEAAO8kyQd85BbNCOHx3gbzZVEUzu3LwAneIgnWxqsd
 
 const binaryString = window.atob(binaryData);
 const len = binaryString.length;
-const frontalFaceClassifier = new Int8Array(len);
+const classifier = new Int8Array(len);
 for (let i = 0; i < len; i++) {
-    frontalFaceClassifier[i] = binaryString.charCodeAt(i);
+    classifier[i] = binaryString.charCodeAt(i);
 }
-export default frontalFaceClassifier;
+export const FrontalFaceClassifier = classifier;
