@@ -1,3 +1,4 @@
+import {Object} from "./object";
 
 export class Detector {
 
@@ -73,10 +74,11 @@ export class Detector {
         }
     }
 
-    public detect(classifierName: string, image: ImageData, config: {shiftFactor?: number, minSize?: number, maxSize?: number, scaleFactor?: number, iouThreshold?: number} = {}) {
-        let detections = [];
+    public detect(classifierName: string, image: ImageData, config: {shiftFactor?: number, minSize?: number, maxSize?: number, scaleFactor?: number, iouThreshold?: number} = {}): Object {
+        let detectedObject: Object = null;
         const classifier = this.classifiers[classifierName];
         if (classifier) {
+            let detections = [];
             const imageData = image.data;
             const imagePixels = new Uint8Array(image.height * image.width);
             for(let r = 0; r < image.height; ++r) {
@@ -132,7 +134,19 @@ export class Detector {
                 }
             }
             detections = clusters;
+
+            if (detections && detections.length) {
+                detections = detections.filter((detection) => detection[3] > 5).sort((detection1, detection2) => detection1[3] - detection2[3]);
+                const bestDetection = detections[0];
+                if (bestDetection && bestDetection.length >= 3) {
+                    const centerY = bestDetection[0];
+                    const centerX = bestDetection[1];
+                    const diameter = bestDetection[2];
+                    const radius = diameter / 2;
+                    detectedObject = { center: { x: centerX, y: centerY }, radius };
+                }
+            }
         }
-        return detections;
+        return detectedObject;
     }
 }
