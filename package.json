@@ -1,0 +1,32 @@
+{
+    "name": "cascade-classifier-detector",
+    "version": "1.0.0",
+    "description": "Simple cascade classifier detector",
+    "author": "Luis Manuel Amengual",
+    "license": "MIT",
+    "keywords": [
+        "detection",
+        "biometry",
+        "cascade",
+        "classifier"
+    ],
+    "homepage": "https://github.com/luismanuelamengual/cascade-classifier-detector#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/luismanuelamengual/cascade-classifier-detector.git"
+    },
+    "bugs": {
+        "url": "https://github.com/luismanuelamengual/cascade-classifier-detector/issues"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "prepublishOnly": "npm run build"
+    },
+    "devDependencies": {
+        "typescript": "^4.4.4"
+    }
+}
