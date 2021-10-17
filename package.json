@@ -1,6 +1,6 @@
 {
     "name": "cascade-classifier-detector",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Simple cascade classifier detector",
     "author": "Luis Manuel Amengual",
     "license": "MIT",
