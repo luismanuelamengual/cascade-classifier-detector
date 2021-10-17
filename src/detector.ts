@@ -1,4 +1,4 @@
-import {Object} from "./object";
+import {DetectedItem} from "./detected-item";
 
 export class Detector {
 
@@ -74,8 +74,8 @@ export class Detector {
         }
     }
 
-    public detect(classifierName: string, image: ImageData, config: {shiftFactor?: number, minSize?: number, maxSize?: number, scaleFactor?: number, iouThreshold?: number} = {}): Object {
-        let detectedObject: Object = null;
+    public detect(classifierName: string, image: ImageData, config: {shiftFactor?: number, minSize?: number, maxSize?: number, scaleFactor?: number, iouThreshold?: number} = {}): Array<DetectedItem> {
+        const detectedItems: Array<DetectedItem> = [];
         const classifier = this.classifiers[classifierName];
         if (classifier) {
             let detections = [];
@@ -137,16 +137,17 @@ export class Detector {
 
             if (detections && detections.length) {
                 detections = detections.filter((detection) => detection[3] > 5).sort((detection1, detection2) => detection1[3] - detection2[3]);
-                const bestDetection = detections[0];
-                if (bestDetection && bestDetection.length >= 3) {
-                    const centerY = bestDetection[0];
-                    const centerX = bestDetection[1];
-                    const diameter = bestDetection[2];
-                    const radius = diameter / 2;
-                    detectedObject = { center: { x: centerX, y: centerY }, radius };
-                }
+                detections.forEach((detection) => {
+                    if (detection.length >= 3) {
+                        const centerY = detection[0];
+                        const centerX = detection[1];
+                        const diameter = detection[2];
+                        const radius = diameter / 2;
+                        detectedItems.push({ center: { x: centerX, y: centerY }, radius });
+                    }
+                });
             }
         }
-        return detectedObject;
+        return detectedItems;
     }
 }

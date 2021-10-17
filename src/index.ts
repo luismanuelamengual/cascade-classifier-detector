@@ -1,3 +1,3 @@
 export * from './detector';
-export * from './object';
+export * from './detected-item';
 export * from './classfiers';
