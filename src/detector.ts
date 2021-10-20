@@ -6,6 +6,11 @@ export class Detector {
     private classifier: Classifier;
     private memoryIndex = 0;
     private memoryBuffer: Array<any> = [];
+    private shiftFactor = 0.1;
+    private minSize = 100;
+    private maxSize = 1000;
+    private scaleFactor = 1.1;
+    private iouThreshold = 0.2;
 
     public constructor(classifier: Classifier, memoryBufferSize = 1) {
         this.classifier = classifier;
@@ -16,27 +21,19 @@ export class Detector {
         }
     }
 
-    public detect(image: ImageData, config: {shiftFactor?: number, minSize?: number, maxSize?: number, scaleFactor?: number, iouThreshold?: number} = {}): Array<DetectedItem> {
-        config = Object.assign({
-            shiftFactor: 0.1,
-            minSize: 100,
-            maxSize: 1000,
-            scaleFactor: 1.1,
-            iouThreshold: 0.2
-        }, config);
-
+    public detect(image: ImageData): Array<DetectedItem> {
         const detectedItems: Array<DetectedItem> = [];
         let detections = [];
         const imageData = image.data;
         const imagePixels = new Uint8Array(image.height * image.width);
-        for(let r = 0; r < image.height; ++r) {
+        for (let r = 0; r < image.height; ++r) {
             for(let c = 0; c < image.width; ++c) {
                 imagePixels[r*image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 *image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
             }
         }
-        let scale = config.minSize;
-        while (scale <= config.maxSize) {
-            const step = Math.max(config.shiftFactor * scale, 1) >> 0;
+        let scale = this.minSize;
+        while (scale <= this.maxSize) {
+            const step = Math.max(this.shiftFactor * scale, 1) >> 0;
             const offset = (scale / 2 + 1) >> 0;
             for (let r = offset; r <= image.height - offset; r += step) {
                 for (let c = offset; c <= image.width - offset; c += step) {
@@ -46,7 +43,7 @@ export class Detector {
                     }
                 }
             }
-            scale = scale * config.scaleFactor;
+            scale = scale * this.scaleFactor;
         }
 
         if (this.memoryBuffer.length) {
@@ -72,7 +69,7 @@ export class Detector {
             if (assignments[i] == 0) {
                 let r = 0.0, c = 0.0, s = 0.0, q = 0.0, n = 0;
                 for (let j = i; j < detections.length; ++j) {
-                    if (calculate_iou(detections[i], detections[j]) > config.iouThreshold) {
+                    if (calculate_iou(detections[i], detections[j]) > this.iouThreshold) {
                         assignments[j] = 1;
                         r = r + detections[j][0];
                         c = c + detections[j][1];
