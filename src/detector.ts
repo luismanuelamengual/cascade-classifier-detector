@@ -1,60 +1,14 @@
 import {DetectedItem} from "./detected-item";
 import {DetectionMemoryBuffer} from "./detection-memory-buffer";
+import {Classifier} from "./classifier";
 
 export class Detector {
 
-    private classifier: any;
+    private classifier: Classifier;
     private memoryBuffer: DetectionMemoryBuffer = null;
 
-    public constructor(bytes: Int8Array, memoryBufferSize = 5) {
-        const dview = new DataView(new ArrayBuffer(4));
-        let p = 8;
-        dview.setUint8(0, bytes[p]), dview.setUint8(1, bytes[p + 1]), dview.setUint8(2, bytes[p + 2]), dview.setUint8(3, bytes[p + 3]);
-        const tdepth = dview.getInt32(0, true);
-        p = p + 4;
-        dview.setUint8(0, bytes[p]), dview.setUint8(1, bytes[p + 1]), dview.setUint8(2, bytes[p + 2]), dview.setUint8(3, bytes[p + 3]);
-        const ntrees = dview.getInt32(0, true);
-        p = p + 4;
-        const tcodes_ls = [];
-        const tpreds_ls = [];
-        const thresh_ls = [];
-        for (let t = 0; t < ntrees; ++t) {
-            Array.prototype.push.apply(tcodes_ls, [0, 0, 0, 0]);
-            Array.prototype.push.apply(tcodes_ls, bytes.slice(p, p + 4 * Math.pow(2, tdepth) - 4));
-            p = p + 4 * Math.pow(2, tdepth) - 4;
-            for (let i = 0; i < Math.pow(2, tdepth); ++i) {
-                dview.setUint8(0, bytes[p]), dview.setUint8(1, bytes[p + 1]), dview.setUint8(2, bytes[p + 2]), dview.setUint8(3, bytes[p + 3]);
-                tpreds_ls.push(dview.getFloat32(0, true));
-                p = p + 4;
-            }
-            dview.setUint8(0, bytes[p]), dview.setUint8(1, bytes[p + 1]), dview.setUint8(2, bytes[p + 2]), dview.setUint8(3, bytes[p + 3]);
-            thresh_ls.push(dview.getFloat32(0, true));
-            p = p + 4;
-        }
-        const tcodes = new Int8Array(tcodes_ls);
-        const tpreds = new Float32Array(tpreds_ls);
-        const thresh = new Float32Array(thresh_ls);
-        this.classifier = function (r, c, s, pixels, ldim) {
-            r = 256 * r;
-            c = 256 * c;
-            let root = 0;
-            let o = 0.0;
-            const pow2tdepth = Math.pow(2, tdepth) >> 0;
-            for (let i = 0; i < ntrees; ++i) {
-                let idx = 1;
-                for (let j = 0; j < tdepth; ++j) {
-                    const i1 = ((r + tcodes[(root + 4 * idx)] * s) >> 8) * ldim + ((c + tcodes[root + 4 * idx + 1] * s) >> 8);
-                    const i2 = ((r + tcodes[root + 4 * idx + 2] * s) >> 8) * ldim + ((c + tcodes[root + 4 * idx + 3] * s) >> 8);
-                    idx = 2 * idx + (pixels[i1] <= pixels[i2] ? 1 : 0);
-                }
-                o = o + tpreds[pow2tdepth * i + idx - pow2tdepth];
-                if (o <= thresh[i]) {
-                    return -1;
-                }
-                root += 4 * pow2tdepth;
-            }
-            return o - thresh[ntrees - 1];
-        };
+    public constructor(classifier: Classifier, memoryBufferSize = 5) {
+        this.classifier = classifier;
         if (memoryBufferSize > 1) {
             this.memoryBuffer = new DetectionMemoryBuffer(memoryBufferSize);
         }
@@ -84,7 +38,7 @@ export class Detector {
             const offset = (scale / 2 + 1) >> 0;
             for (let r = offset; r <= image.height - offset; r += step) {
                 for (let c = offset; c <= image.width - offset; c += step) {
-                    const q = this.classifier(r, c, scale, imagePixels, image.width);
+                    const q = this.classifier.process(r, c, scale, imagePixels, image.width);
                     if (q > 0.0) {
                         detections.push([r, c, scale, q]);
                     }
