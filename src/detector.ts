@@ -1,16 +1,18 @@
 import {DetectedItem} from "./detected-item";
-import {DetectionMemoryBuffer} from "./detection-memory-buffer";
 import {Classifier} from "./classifier";
 
 export class Detector {
 
     private classifier: Classifier;
-    private memoryBuffer: DetectionMemoryBuffer = null;
+    private memoryIndex = 0;
+    private memoryBuffer: Array<any> = [];
 
-    public constructor(classifier: Classifier, memoryBufferSize = 5) {
+    public constructor(classifier: Classifier, memoryBufferSize = 1) {
         this.classifier = classifier;
         if (memoryBufferSize > 1) {
-            this.memoryBuffer = new DetectionMemoryBuffer(memoryBufferSize);
+            for (let i = 0; i < memoryBufferSize; ++i) {
+                this.memoryBuffer.push([]);
+            }
         }
     }
 
@@ -47,9 +49,13 @@ export class Detector {
             scale = scale * config.scaleFactor;
         }
 
-        if (this.memoryBuffer) {
-            this.memoryBuffer.addDetections(detections);
-            detections = this.memoryBuffer.getDetections();
+        if (this.memoryBuffer.length) {
+            this.memoryBuffer[this.memoryIndex] = detections;
+            this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
+            detections = [];
+            for (let i = 0; i < this.memoryBuffer.length; ++i) {
+                detections = detections.concat(this.memoryBuffer[i]);
+            }
         }
 
         detections = detections.sort((a, b) => b[3] - a[3]);
