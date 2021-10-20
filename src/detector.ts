@@ -22,12 +22,11 @@ export class Detector {
     }
 
     public detect(image: ImageData): Array<Detection> {
-        const detectedItems: Array<Detection> = [];
         let detections = [];
         const imageData = image.data;
         const imagePixels = new Uint8Array(image.height * image.width);
         for (let r = 0; r < image.height; ++r) {
-            for(let c = 0; c < image.width; ++c) {
+            for (let c = 0; c < image.width; ++c) {
                 imagePixels[r*image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 *image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
             }
         }
@@ -83,6 +82,7 @@ export class Detector {
         }
         detections = clusters;
 
+        const detectedItems: Array<Detection> = [];
         if (detections && detections.length) {
             detections = detections.filter((detection) => detection[3] > 5).sort((detection1, detection2) => detection1[3] - detection2[3]);
             detections.forEach((detection) => {
