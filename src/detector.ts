@@ -1,4 +1,4 @@
-import {DetectedItem} from "./detected-item";
+import {Detection} from "./detection";
 import {Classifier} from "./classifier";
 
 export class Detector {
@@ -12,7 +12,7 @@ export class Detector {
     private scaleFactor = 1.1;
     private iouThreshold = 0.2;
 
-    public constructor(classifier: Classifier, memoryBufferSize = 1) {
+    constructor(classifier: Classifier, memoryBufferSize = 1) {
         this.classifier = classifier;
         if (memoryBufferSize > 1) {
             for (let i = 0; i < memoryBufferSize; ++i) {
@@ -21,8 +21,8 @@ export class Detector {
         }
     }
 
-    public detect(image: ImageData): Array<DetectedItem> {
-        const detectedItems: Array<DetectedItem> = [];
+    public detect(image: ImageData): Array<Detection> {
+        const detectedItems: Array<Detection> = [];
         let detections = [];
         const imageData = image.data;
         const imagePixels = new Uint8Array(image.height * image.width);

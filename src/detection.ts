@@ -1,4 +1,4 @@
-export interface DetectedItem {
+export interface Detection {
     center: {x: number, y: number};
     radius: number;
 }
