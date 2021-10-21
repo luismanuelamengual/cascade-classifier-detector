@@ -23,22 +23,25 @@ export class Detector {
 
     public detect(image: ImageData): Array<Detection> {
         let detections = [];
+
+        // Utilizar el clasificador para detectar objetos en la imagen
         const imagePixels = this.getImagePixels(image);
         let scale = this.minSize;
         while (scale <= this.maxSize) {
             const step = Math.max(this.shiftFactor * scale, 1) >> 0;
             const offset = (scale / 2 + 1) >> 0;
-            for (let r = offset; r <= image.height - offset; r += step) {
-                for (let c = offset; c <= image.width - offset; c += step) {
-                    const q = this.classifier.process(r, c, scale, imagePixels, image.width);
-                    if (q > 0.0) {
-                        detections.push([r, c, scale, q]);
+            for (let row = offset; row <= image.height - offset; row += step) {
+                for (let column = offset; column <= image.width - offset; column += step) {
+                    const score = this.classifier.process(row, column, scale, imagePixels, image.width);
+                    if (score > 0.0) {
+                        detections.push([row, column, scale, score]);
                     }
                 }
             }
             scale = scale * this.scaleFactor;
         }
 
+        // Utilizar el buffer de memoria para obtener las ultimas n detecciones
         if (this.memoryBuffer.length) {
             this.memoryBuffer[this.memoryIndex] = detections;
             this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
@@ -48,6 +51,7 @@ export class Detector {
             }
         }
 
+        // Utlizar clustering para descartar detecciones del mismo objeto
         detections = detections.sort((a, b) => b[3] - a[3]);
         const assignments = new Array(detections.length).fill(0);
         const clusters = [];
