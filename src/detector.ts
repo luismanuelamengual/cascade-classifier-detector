@@ -30,7 +30,7 @@ export class Detector {
 
     private findDetections(image: ImageData): Array<Detection> {
         const detections: Array<Detection> = [];
-        const imagePixels = this.getImagePixels(image);
+        const imagePixels = Detector.getImagePixels(image);
         let scale = this.minSize;
         while (scale <= this.maxSize) {
             const step = Math.max(this.shiftFactor * scale, 1) >> 0;
@@ -69,7 +69,7 @@ export class Detector {
             if (assignments[i] == 0) {
                 let centerYSum = 0.0, centerXSum = 0.0, radiusSum = 0.0, scoreSum = 0.0, counter = 0;
                 for (let j = i; j < detections.length; ++j) {
-                    if (this.calculateIOU(detections[i], detections[j]) > this.iouThreshold) {
+                    if (Detector.calculateIOU(detections[i], detections[j]) > this.iouThreshold) {
                         assignments[j] = 1;
                         centerYSum = centerYSum + detections[j].center.y;
                         centerXSum = centerXSum + detections[j].center.x;
@@ -84,7 +84,7 @@ export class Detector {
         return clusters;
     }
 
-    private getImagePixels (image: ImageData): Uint8Array {
+    private static getImagePixels (image: ImageData): Uint8Array {
         const imageData = image.data;
         const imagePixels = new Uint8Array(image.height * image.width);
         for (let r = 0; r < image.height; ++r) {
@@ -95,7 +95,7 @@ export class Detector {
         return imagePixels;
     }
 
-    private calculateIOU(detection1: Detection, detection2: Detection): number {
+    private static calculateIOU(detection1: Detection, detection2: Detection): number {
         const r1 = detection1.center.y, c1 = detection1.center.x, s1 = detection1.radius;
         const r2 = detection2.center.y, c2 = detection2.center.x, s2 = detection2.radius;
         const overr = Math.max(0, Math.min(r1 + s1 / 2, r2 + s2 / 2) - Math.max(r1 - s1 / 2, r2 - s2 / 2));
