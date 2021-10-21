@@ -23,13 +23,7 @@ export class Detector {
 
     public detect(image: ImageData): Array<Detection> {
         let detections = [];
-        const imageData = image.data;
-        const imagePixels = new Uint8Array(image.height * image.width);
-        for (let r = 0; r < image.height; ++r) {
-            for (let c = 0; c < image.width; ++c) {
-                imagePixels[r*image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 *image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
-            }
-        }
+        const imagePixels = this.getImagePixels(image);
         let scale = this.minSize;
         while (scale <= this.maxSize) {
             const step = Math.max(this.shiftFactor * scale, 1) >> 0;
@@ -55,20 +49,13 @@ export class Detector {
         }
 
         detections = detections.sort((a, b) => b[3] - a[3]);
-        function calculate_iou(det1, det2) {
-            const r1 = det1[0], c1 = det1[1], s1 = det1[2];
-            const r2 = det2[0], c2 = det2[1], s2 = det2[2];
-            const overr = Math.max(0, Math.min(r1 + s1 / 2, r2 + s2 / 2) - Math.max(r1 - s1 / 2, r2 - s2 / 2));
-            const overc = Math.max(0, Math.min(c1 + s1 / 2, c2 + s2 / 2) - Math.max(c1 - s1 / 2, c2 - s2 / 2));
-            return overr * overc / (s1 * s1 + s2 * s2 - overr * overc);
-        }
         const assignments = new Array(detections.length).fill(0);
         const clusters = [];
         for (let i = 0; i < detections.length; ++i) {
             if (assignments[i] == 0) {
                 let r = 0.0, c = 0.0, s = 0.0, q = 0.0, n = 0;
                 for (let j = i; j < detections.length; ++j) {
-                    if (calculate_iou(detections[i], detections[j]) > this.iouThreshold) {
+                    if (this.calculateIOU(detections[i], detections[j]) > this.iouThreshold) {
                         assignments[j] = 1;
                         r = r + detections[j][0];
                         c = c + detections[j][1];
@@ -96,5 +83,24 @@ export class Detector {
             });
         }
         return detectedItems;
+    }
+
+    private getImagePixels (image: ImageData): Uint8Array {
+        const imageData = image.data;
+        const imagePixels = new Uint8Array(image.height * image.width);
+        for (let r = 0; r < image.height; ++r) {
+            for (let c = 0; c < image.width; ++c) {
+                imagePixels[r*image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 * image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
+            }
+        }
+        return imagePixels;
+    }
+
+    private calculateIOU(det1, det2) {
+        const r1 = det1[0], c1 = det1[1], s1 = det1[2];
+        const r2 = det2[0], c2 = det2[1], s2 = det2[2];
+        const overr = Math.max(0, Math.min(r1 + s1 / 2, r2 + s2 / 2) - Math.max(r1 - s1 / 2, r2 - s2 / 2));
+        const overc = Math.max(0, Math.min(c1 + s1 / 2, c2 + s2 / 2) - Math.max(c1 - s1 / 2, c2 - s2 / 2));
+        return overr * overc / (s1 * s1 + s2 * s2 - overr * overc);
     }
 }
