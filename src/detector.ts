@@ -96,10 +96,10 @@ export class Detector {
     }
 
     private static calculateIOU(detection1: Detection, detection2: Detection): number {
-        const r1 = detection1.center.y, c1 = detection1.center.x, s1 = detection1.radius;
-        const r2 = detection2.center.y, c2 = detection2.center.x, s2 = detection2.radius;
-        const overr = Math.max(0, Math.min(r1 + s1 / 2, r2 + s2 / 2) - Math.max(r1 - s1 / 2, r2 - s2 / 2));
-        const overc = Math.max(0, Math.min(c1 + s1 / 2, c2 + s2 / 2) - Math.max(c1 - s1 / 2, c2 - s2 / 2));
-        return overr * overc / (s1 * s1 + s2 * s2 - overr * overc);
+        const centerY1 = detection1.center.y, centerX1 = detection1.center.x, radius1 = detection1.radius;
+        const centerY2 = detection2.center.y, centerX2 = detection2.center.x, radius2 = detection2.radius;
+        const overr = Math.max(0, Math.min(centerY1 + radius1 / 2, centerY2 + radius2 / 2) - Math.max(centerY1 - radius1 / 2, centerY2 - radius2 / 2));
+        const overc = Math.max(0, Math.min(centerX1 + radius1 / 2, centerX2 + radius2 / 2) - Math.max(centerX1 - radius1 / 2, centerX2 - radius2 / 2));
+        return overr * overc / (radius1 * radius1 + radius2 * radius2 - overr * overc);
     }
 }
