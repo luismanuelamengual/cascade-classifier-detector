@@ -22,9 +22,14 @@ export class Detector {
     }
 
     public detect(image: ImageData): Array<Detection> {
-        let detections = [];
+        let detections = this.findDetections(image);
+        detections = this.findMemoryDetections(detections);
+        detections = this.clusterDetections(detections);
+        return detections;
+    }
 
-        // Utilizar el clasificador para detectar objetos en la imagen
+    private findDetections(image: ImageData): Array<Detection> {
+        const detections: Array<Detection> = [];
         const imagePixels = this.getImagePixels(image);
         let scale = this.minSize;
         while (scale <= this.maxSize) {
@@ -34,59 +39,49 @@ export class Detector {
                 for (let column = offset; column <= image.width - offset; column += step) {
                     const score = this.classifier.process(row, column, scale, imagePixels, image.width);
                     if (score > 0.0) {
-                        detections.push([row, column, scale, score]);
+                        detections.push({center: {x: column, y: row}, radius: scale / 2, score});
                     }
                 }
             }
             scale = scale * this.scaleFactor;
         }
+        return detections;
+    }
 
-        // Utilizar el buffer de memoria para obtener las ultimas n detecciones
+    private findMemoryDetections(detections: Array<Detection>): Array<Detection> {
+        let memoryDetections: Array<Detection> = detections;
         if (this.memoryBuffer.length) {
             this.memoryBuffer[this.memoryIndex] = detections;
             this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
-            detections = [];
+            memoryDetections = [];
             for (let i = 0; i < this.memoryBuffer.length; ++i) {
-                detections = detections.concat(this.memoryBuffer[i]);
+                memoryDetections = memoryDetections.concat(this.memoryBuffer[i]);
             }
         }
+        return memoryDetections;
+    }
 
-        // Utlizar clustering para descartar detecciones del mismo objeto
-        detections = detections.sort((a, b) => b[3] - a[3]);
+    private clusterDetections(detections: Array<Detection>): Array<Detection> {
+        detections = detections.sort((a, b) => b.score - a.score);
         const assignments = new Array(detections.length).fill(0);
-        const clusters = [];
+        const clusters: Array<Detection> = [];
         for (let i = 0; i < detections.length; ++i) {
             if (assignments[i] == 0) {
-                let r = 0.0, c = 0.0, s = 0.0, q = 0.0, n = 0;
+                let centerYSum = 0.0, centerXSum = 0.0, radiusSum = 0.0, scoreSum = 0.0, counter = 0;
                 for (let j = i; j < detections.length; ++j) {
                     if (this.calculateIOU(detections[i], detections[j]) > this.iouThreshold) {
                         assignments[j] = 1;
-                        r = r + detections[j][0];
-                        c = c + detections[j][1];
-                        s = s + detections[j][2];
-                        q = q + detections[j][3];
-                        n = n + 1;
+                        centerYSum = centerYSum + detections[j].center.y;
+                        centerXSum = centerXSum + detections[j].center.x;
+                        radiusSum = radiusSum + detections[j].radius;
+                        scoreSum = scoreSum + detections[j].score;
+                        counter = counter + 1;
                     }
                 }
-                clusters.push([r / n, c / n, s / n, q]);
+                clusters.push({center: {x: centerXSum / counter, y: centerYSum / counter}, radius: radiusSum / counter, score: scoreSum});
             }
         }
-        detections = clusters;
-
-        const detectedItems: Array<Detection> = [];
-        if (detections && detections.length) {
-            detections = detections.filter((detection) => detection[3] > 5).sort((detection1, detection2) => detection1[3] - detection2[3]);
-            detections.forEach((detection) => {
-                if (detection.length >= 3) {
-                    const centerY = detection[0];
-                    const centerX = detection[1];
-                    const diameter = detection[2];
-                    const radius = diameter / 2;
-                    detectedItems.push({ center: { x: centerX, y: centerY }, radius });
-                }
-            });
-        }
-        return detectedItems;
+        return clusters;
     }
 
     private getImagePixels (image: ImageData): Uint8Array {
@@ -100,9 +95,9 @@ export class Detector {
         return imagePixels;
     }
 
-    private calculateIOU(det1, det2) {
-        const r1 = det1[0], c1 = det1[1], s1 = det1[2];
-        const r2 = det2[0], c2 = det2[1], s2 = det2[2];
+    private calculateIOU(detection1: Detection, detection2: Detection): number {
+        const r1 = detection1.center.y, c1 = detection1.center.x, s1 = detection1.radius;
+        const r2 = detection2.center.y, c2 = detection2.center.x, s2 = detection2.radius;
         const overr = Math.max(0, Math.min(r1 + s1 / 2, r2 + s2 / 2) - Math.max(r1 - s1 / 2, r2 - s2 / 2));
         const overc = Math.max(0, Math.min(c1 + s1 / 2, c2 + s2 / 2) - Math.max(c1 - s1 / 2, c2 - s2 / 2));
         return overr * overc / (s1 * s1 + s2 * s2 - overr * overc);
