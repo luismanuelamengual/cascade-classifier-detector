@@ -4,26 +4,26 @@ import {Classifier} from "./classifier";
 export class Detector {
 
     private classifier: Classifier;
-    private memoryIndex = 0;
-    private memoryBuffer: Array<any> = [];
     private shiftFactor = 0.1;
     private minSize = 100;
     private maxSize = 1000;
     private scaleFactor = 1.1;
     private iouThreshold = 0.2;
+    private memoryBufferEnabled = false;
+    private memoryIndex = 0;
+    private memoryBuffer: Array<Array<Detection>> = [];
+    private memoryBufferSize = 5;
 
-    constructor(classifier: Classifier, memoryBufferSize = 1) {
+    constructor(classifier: Classifier) {
         this.classifier = classifier;
-        if (memoryBufferSize > 1) {
-            for (let i = 0; i < memoryBufferSize; ++i) {
-                this.memoryBuffer.push([]);
-            }
-        }
     }
 
     public detect(image: ImageData): Array<Detection> {
         let detections = this.findDetections(image);
-        detections = this.findMemoryDetections(detections);
+        if (this.memoryBufferEnabled) {
+            this.updateMemoryBuffer(detections);
+            detections = this.getMemoryBufferDetections();
+        }
         detections = this.clusterDetections(detections);
         return detections;
     }
@@ -48,15 +48,18 @@ export class Detector {
         return detections;
     }
 
-    private findMemoryDetections(detections: Array<Detection>): Array<Detection> {
-        let memoryDetections: Array<Detection> = detections;
-        if (this.memoryBuffer.length) {
-            this.memoryBuffer[this.memoryIndex] = detections;
-            this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
-            memoryDetections = [];
-            for (let i = 0; i < this.memoryBuffer.length; ++i) {
-                memoryDetections = memoryDetections.concat(this.memoryBuffer[i]);
-            }
+    private updateMemoryBuffer(detections: Array<Detection>): void {
+        if (this.memoryBuffer.length != this.memoryBufferSize) {
+            this.memoryBuffer = new Array(this.memoryBufferSize).fill([]);
+        }
+        this.memoryBuffer[this.memoryIndex] = detections;
+        this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
+    }
+
+    private getMemoryBufferDetections(): Array<Detection> {
+        let memoryDetections: Array<Detection> = [];
+        for (let i = 0; i < this.memoryBuffer.length; ++i) {
+            memoryDetections = memoryDetections.concat(this.memoryBuffer[i]);
         }
         return memoryDetections;
     }
