@@ -1,26 +1,38 @@
 import {Detection} from "./detection";
 import {Classifier} from "./classifier";
+import {DetectorConfiguration} from "./detector-configuration";
 
 export class Detector {
 
     private classifier: Classifier;
-    private shiftFactor = 0.1;
-    private minSize = 100;
-    private maxSize = 1000;
-    private scaleFactor = 1.1;
-    private iouThreshold = 0.2;
-    private memoryBufferEnabled = false;
+    private configuration: DetectorConfiguration;
     private memoryIndex = 0;
     private memoryBuffer: Array<Array<Detection>> = [];
-    private memoryBufferSize = 5;
 
-    constructor(classifier: Classifier) {
+    constructor(classifier: Classifier, configuration?: DetectorConfiguration) {
         this.classifier = classifier;
+        this.configuration = Object.assign({
+            shiftFactor: 0.1,
+            minSize: 100,
+            maxSize: 1000,
+            scaleFactor: 1.1,
+            iouThreshold: 0.2,
+            memoryBufferEnabled: false,
+            memoryBufferSize: 5
+        }, configuration ?? {});
+    }
+
+    public setConfiguration(configuration: DetectorConfiguration) {
+        Object.assign(this.configuration, configuration);
+    }
+
+    public getConfiguration(): DetectorConfiguration {
+        return this.configuration;
     }
 
     public detect(image: ImageData): Array<Detection> {
         let detections = this.findDetections(image);
-        if (this.memoryBufferEnabled) {
+        if (this.configuration.memoryBufferEnabled) {
             this.updateMemoryBuffer(detections);
             detections = this.getMemoryBufferDetections();
         }
@@ -31,9 +43,9 @@ export class Detector {
     private findDetections(image: ImageData): Array<Detection> {
         const detections: Array<Detection> = [];
         const imagePixels = Detector.getImagePixels(image);
-        let scale = this.minSize;
-        while (scale <= this.maxSize) {
-            const step = Math.max(this.shiftFactor * scale, 1) >> 0;
+        let scale = this.configuration.minSize;
+        while (scale <= this.configuration.maxSize) {
+            const step = Math.max(this.configuration.shiftFactor * scale, 1) >> 0;
             const offset = (scale / 2 + 1) >> 0;
             for (let row = offset; row <= image.height - offset; row += step) {
                 for (let column = offset; column <= image.width - offset; column += step) {
@@ -43,14 +55,14 @@ export class Detector {
                     }
                 }
             }
-            scale = scale * this.scaleFactor;
+            scale = scale * this.configuration.scaleFactor;
         }
         return detections;
     }
 
     private updateMemoryBuffer(detections: Array<Detection>): void {
-        if (this.memoryBuffer.length != this.memoryBufferSize) {
-            this.memoryBuffer = new Array(this.memoryBufferSize).fill([]);
+        if (this.memoryBuffer.length != this.configuration.memoryBufferSize) {
+            this.memoryBuffer = new Array(this.configuration.memoryBufferSize).fill([]);
         }
         this.memoryBuffer[this.memoryIndex] = detections;
         this.memoryIndex = (this.memoryIndex + 1) % this.memoryBuffer.length;
@@ -72,7 +84,7 @@ export class Detector {
             if (assignments[i] == 0) {
                 let centerYSum = 0.0, centerXSum = 0.0, radiusSum = 0.0, scoreSum = 0.0, counter = 0;
                 for (let j = i; j < detections.length; ++j) {
-                    if (Detector.calculateIOU(detections[i], detections[j]) > this.iouThreshold) {
+                    if (Detector.calculateIOU(detections[i], detections[j]) > this.configuration.iouThreshold) {
                         assignments[j] = 1;
                         centerYSum = centerYSum + detections[j].center.y;
                         centerXSum = centerXSum + detections[j].center.x;
@@ -92,7 +104,7 @@ export class Detector {
         const imagePixels = new Uint8Array(image.height * image.width);
         for (let r = 0; r < image.height; ++r) {
             for (let c = 0; c < image.width; ++c) {
-                imagePixels[r*image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 * image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
+                imagePixels[r * image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 * image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
             }
         }
         return imagePixels;
