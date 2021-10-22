@@ -102,9 +102,9 @@ export class Detector {
     private static getImagePixels (image: ImageData): Uint8Array {
         const imageData = image.data;
         const imagePixels = new Uint8Array(image.height * image.width);
-        for (let r = 0; r < image.height; ++r) {
-            for (let c = 0; c < image.width; ++c) {
-                imagePixels[r * image.width + c] = (2 * imageData[(r * 4 * image.width + 4 * c)] + 7 * imageData[r * 4 * image.width + 4 * c + 1] + imageData[r * 4 * image.width + 4 * c + 2]) / 10;
+        for (let y = 0; y < image.height; ++y) {
+            for (let x = 0; x < image.width; ++x) {
+                imagePixels[y * image.width + x] = (2 * imageData[(y * 4 * image.width + 4 * x)] + 7 * imageData[y * 4 * image.width + 4 * x + 1] + imageData[y * 4 * image.width + 4 * x + 2]) / 10;
             }
         }
         return imagePixels;
