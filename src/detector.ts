@@ -47,11 +47,11 @@ export class Detector {
         while (scale <= this.configuration.maxSize) {
             const step = Math.max(this.configuration.shiftFactor * scale, 1) >> 0;
             const offset = (scale / 2 + 1) >> 0;
-            for (let row = offset; row <= image.height - offset; row += step) {
-                for (let column = offset; column <= image.width - offset; column += step) {
-                    const score = this.classifier.process(row, column, scale, imagePixels, image.width);
+            for (let y = offset; y <= image.height - offset; y += step) {
+                for (let x = offset; x <= image.width - offset; x += step) {
+                    const score = this.classifier.process(y, x, scale, imagePixels, image.width);
                     if (score > 0.0) {
-                        detections.push({center: {x: column, y: row}, radius: scale / 2, score});
+                        detections.push({center: {x, y}, radius: scale / 2, score});
                     }
                 }
             }
